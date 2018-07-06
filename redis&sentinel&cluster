@@ -1,0 +1,35 @@
+5中数据类型: 字符串/哈希表/列表/集合/有序集合
+其他功能:    键过期/发布订阅/lua脚本/简单事务
+bin目录下可执行文件: redis-server/redis-cli/redis-benchmark/redis-check-aof/redis-check-dump/redis-sentinel
+通过复制, 可以实现: 读写分离/故障转移/实时备份
+
+[redis开发与运维 第9章 哨兵]
+redis sentinel是redis高可用的实现方案
+参与sentinal的有: 一组sentinel节点/Master/Slave
+	1. 多个sentinel定期监控发现master故障
+	2. sentinel之间达成一致, 选举一个sentinel负责故障转移(failover)
+	3. 选举的sentinal 1) 设置新的master 2)通知其他slave 3) 通知应用新master
+
+实现原理:
+	1. 当一个sentinel对master发送心跳, 没有得到有效回复, 主观认为下线
+	2. 此sentinel询问其他sentinel这个master的情况, 如果大于quorum, 则可观下线, 开始操作选举leader
+	3. 使用raft算法进行leader选举
+
+通用的数据哈希分区方式:
+	1. 节点取余分区, 扩容采用翻倍扩容
+	2. 一致性哈希, 为每个节点分配一个token, 在0 - 2的32之间, 执行节点查找操作时, 先根据key计算hash, 再顺时针找到第一个大于该hash的token
+	3. 虚拟槽分区, 一定数量的slot, 每个redis节点负责一部分slot
+
+redis线上扩容
+	1. 总共一定数量的slot, 集群中每个redis平均负责几个slot
+	2. 加入新节点以后, 每个节点的slot数量重新分配(变少), 然后做数据迁移
+
+缓存设计:
+	1. 缓存穿透, 大量访问缓存中不存在的数据, 请求直接到达存储层. 2种解决方法: 缓存空对象 和 使用bloomfilter
+	2. 缓存雪崩: 缓存crash引起大量请求到达存储层. 解决方法: 缓存高可用 和 服务降级 hystrix
+
+bloomfilter布隆过滤器:
+	1. 作用是判断一个值在基数很大的集合中是否存在
+	2. 传统链表/hashmap等结构随着数据量增大消耗内存增加
+	3. 组成: bit数组/一组hash函数/有一定误判率
+
