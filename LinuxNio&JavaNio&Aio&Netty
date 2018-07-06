@@ -1,0 +1,16 @@
+linux epoll
+	1. epoll = event poll
+	2. 3个方法 create/ctl/wait
+	3. select/poll 工作方式: 
+		- 应用程序产生文件描述符的数组fd_array, 然后系统调用, 内核遍历fd看有没有事件发生, 返回一个bit数组, select/poll返回值不一样
+		- 复杂度是O(n), 扩展性不好
+		- 现在并发量大的机器同时维持100,000TCP 连接, 如果用select/poll, 大量cpu时间浪费在遍历数组上
+	4. epoll不是把大数组在内核空间和用户空间复制, 而且监控每一个fd上事件的发生, 在 有事件fd/总fd 比很低的时候效率高, 它能显著减少程序在大量并发连接中只有少量活跃的情况下的系统CPU利用率
+	5. epoll用红黑树管理fd, 只复制发生事件的fd到用户空间
+
+reactor
+	1. https://blog.csdn.net/u010900754/article/details/77601289
+
+AIO
+	1. 虽然NIO提供了非阻塞的方法, 但是NIO的IO行为还是同步的, 对于NIO来说, 我们的业务线程是在IO操作准备好时, 得到通知, 接着就由这个线程自行进行IO操作, IO操作本身是同步的
+	2. AIO提供回调方法, 异步处理
