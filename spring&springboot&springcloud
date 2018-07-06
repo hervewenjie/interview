@@ -1,0 +1,55 @@
+企业级
+	1. java分 j2se/j2ee/j2me
+	2. j2ee, 大多数web程序, 基于B/S的
+	3. EJB, EntrepriseJavaBean
+
+JavaBean
+	1. ...
+	2. Yes, indeed. It refers just to coffee beans (which can be stored in jar, by the way ...
+
+Mock
+	1. mock测试就是在测试过程中, 对于某些不容易构造或者不容易获取的对象, 用一个虚拟的对象来创建以便测试的测试方法
+	2. adj: not authentic or real, but without the intention to deceive.
+
+reflection
+	1. reflection is the ability of a computer program to examine, introspect, and modify its own structure and behavior at runtime
+	
+DI
+	1. 通过DI, 对象的依赖关系由系统中第三方组件负责, 在创建对象的时候设定
+	2. 创建应用组件之间协作的行为通过称为装配(wiring)
+
+容器
+	1. spring容器并不是只有一个, spring自带很多容器的实现, 可以归为2种不同类型
+		- bean工厂, BeanFactory接口定义, 最简单的容器, 提供DI支持
+		- ApplicationContext, 基于BeanFactory构建, 提供应用框架级别的服务, 例如事件监听
+		- bean工厂对于大多数应用来说太低级了, application context更受欢迎
+
+	2. bean生命周期
+		- 在传统java应用中, bean生命周期很简单, new -> gc
+		- spring容器中bean周期复杂的多...
+			- 实例化
+			- 属性注入
+			- 各种aware接口
+			- postprocessor接口
+			- ...
+			- 可以使用
+
+bean作用域
+	1. spring中, 默认情况下, 都是单例的
+	2. 作用域
+		- singleton
+		- prototype
+		- session
+		- request
+
+Aop
+	1. 大多数用于描述aop功能的术语并不直观, 但在我们进入某个领域之前, 必须学会在这个领域如果说话
+	2. 术语
+		- 通知   advice
+		- 连接点 join point
+		- 切点   point cut
+		- 切面   aspect
+		- 织入   weaving, 把切面应用到目标对象创建新代理对象的过程
+	3. spring支持2种aop, spring自己的aop和基于aspectJ的, 前者已经过时
+	4. aspectJ的实现?CGLib???
+
