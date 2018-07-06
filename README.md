@@ -1,2 +1,2 @@
 # interview
-面试相关
+interview related
