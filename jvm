@@ -1,0 +1,70 @@
+HashCode
+	1. java.lang.Object类的hashCode方法是一个本地方法, 调用虚拟机的JVM_IHashCode方法, 算法产生和内存地址相关的一个int整数
+	2. 为了方便如HashMap使用而暴露的方法
+	3. 语义: 相同对象hashcode保证相同, 但不同对象不保证不同, 可以重写hashCode方法
+
+synchronized
+	1. 三种形式 普通方法锁对象/静态方法锁class/方法块锁括号里对象
+	2. synchronized用的锁存在对象头里, 锁一共4种状态: 无锁->偏向锁->轻量级锁->重量级锁, 从左往右可以升级, 从右往左不能降级
+		
+	3. 彻底了解synchronized http://www.cnblogs.com/dennyzhangdd/p/6734638.html
+		- 偏向锁:  第一次获取锁, 如果线程id是空, 则设置线程id并设置偏向锁标志位1, 下次获取锁, 直接检查id, 不用CAS
+		- 轻量级锁: 第一次获取锁, 发现对象头不是自己的线程id, 新线程根据对象头的线程id, 通知旧线程暂停, 清空对象头, 两个线程把hashcode两个线程都把对象的HashCode复制到自己新建的用于存储锁的记录空间, 接着开始通过CAS操作, 把共享对象的MarKword的内容修改为自己新建的记录空间的地址的方式竞争MarkWord. 成功执行CAS的线程获得资源, 并修改对象头为轻量级锁, 失败的进入自旋
+		- 重量级锁: 自旋的线程在自旋过程中, 成功获得资源(即之前获的资源的线程执行完成并释放了共享资源, 则整个状态依然处于轻量级锁的状态, 如果自旋失败进入重量级锁的状态, 自旋的线程进行阻塞, 等待之前线程执行完成并唤醒自己
+
+		- 简单来说解决三种场景: 只有一个线程进入临界区，偏向锁 / 多个线程交替进入临界区，轻量级锁 / 多线程同时进入临界区，重量级锁
+
+	4. 实现, 偏向锁/轻量级锁都根据对象头实现, 重量级锁除对象头外, 通过对象内部的监视器（monitor）实现, 放入对象同步队列等待
+
+wait/notify
+	1. object对象关联的monitor有同步队列和等待队列...
+
+thread
+	1. 线程4种状态 new/runnable/wait/terminate, wait分为3种 wait/time_wait/block
+	2. 要中断一个Java线程, interrupt()方法并不会立即执行中断操作, 只会给线程设置一个为true的中断标志. 如果线程的当前状态处于非阻塞状态, 仅仅是线程的中断标志被修改为true而已. 如果线程的当前状态处于阻塞状态, wait/sleep以及jion三个方法引起的阻塞, 会将线程的中断标志重新设置为false, 并抛出一个InterruptedException
+	3. stop/resume/suspend 不会释放占有的资源比如锁, 容易死锁
+
+ThreadLocal
+	1. map结构体
+	2. 应用场景: 打印调用耗时, 不需要在一个方法或者一个类中
+
+Lock
+	1. Lock比synchronized更灵活, 获取A和B, 再释放A获取C, 这时候synchronized就不行了, 不能手动控制释放
+	2. AQS, 基于模板模式, 使用者需要继承AQS并重写指定方法
+		- AQS: final get | final set | final compareAndSet
+		- 使用者继承AQS, 有两组[默认实现中抛出unsupportedexception]的方法需要重写 共享tryAcquire/tryRelease和独占tryAcquire/tryRelease, 根据实现锁的性质重写对应的方法
+	3. 重入锁, 已经持有锁的线程再获取锁不会被阻塞, 释放也要求释放相应的次数
+	4. 公平/非公平, 公平性是针对锁的获取而言的, 如果是公平锁, 线程获取锁顺序符合线程请求锁的绝对时间顺序. 非公平锁的实现, 只要CAS成功就获取锁. ReentrantLock支持构造函数公平非公平, 默认非公平, 非公平的实现: 默认lock方法代理到AQS.acquire方法, 非公平不是, 在acquire之前CAS一下, 如果获取到就跳过了AQS内部的同步队列
+	5. 读写锁, 读写锁维护了一对锁 读锁和写锁, 
+	java并发包提供的读写锁是ReentrantReadWriteLock, 实现: 在同一个int上按位切割, 高16位读, 低16位写
+
+	6. 等待通知机制. 2组: synchronized/wait/notify和lock/condition
+		- condition实现: condition是AQS内部类, 因为要获取相关联的锁, 所以作为内部类比较合理
+		- 每个condition包含一个等待队列
+		- Object的监视器模型上, 一个对象有[一个]同步队列和[一个]等待队列, 因为synchronized/wait/notify都要关联这个对象
+		- AQS一个同步队列和多个等待队列
+		- signall相当于将等待队列中的全部节点移动到同步队列中
+
+blockingqueue
+	- add/put/poll和remove/take/offer, 阻塞/超时/异常
+	- jdk7提供7种阻塞队列 linked/array/prioriy/delay
+
+线程池
+	- 线程池的组成: blockingqueue/coresize/maxsize/rejectpolicy
+	- ThreadPoolExecutor构造函数: 
+	- 线程池配置, cpu密集型配置少线程 cpuNum + 1, IO密集型配置多线程 cpuNum * 2
+	- ThreadPoolExecutor通常使用工厂类Executors来创建, fixed/scheduled/cached/single
+	- Future接口和实现Future接口的的FutureTask类
+	- FutureTask实现基于
+
+fork/join
+	-
+	
+13个原子操作类
+	-
+
+countdownlatch/cyclicbarrier/semaphore
+	- countdownlatch实现join功能
+	- cyclicbarrier一组线程同时达到一个屏障再开始
+	- semaphore控制访问资源的线程数量
+
