@@ -1,0 +1,76 @@
+innodb中的线程
+	1. Master thread负责数据刷新, 脏页/合并insert buffer等
+	2. i/o thread, 网络请求等
+	3. purge thread, 回收undo页
+
+checkpoint
+	1. 缩短数据库恢复时间
+	2. 数据库宕机, 不需要重做所有的redo log, checkpoint以前的redo log都已经刷新到磁盘, 大大缩短恢复时间
+	3. 通过LSN(Log Sequence Number)来标记版本, redo log有LSN, checkpoint有LSN, 每个页有LSN
+	
+innodb关键特性
+	1. 插入缓冲 insert buffer
+		- 主键的顺序插入会导致辅助索引的磁盘随机访问
+		- 对于辅助索引的插入, 先写缓存, 再异步合并
+		- 辅助索引必须不能是唯一的, 因为唯一索引插入前要先查找, 查找导致辅助索引树的随机磁盘访问
+		- 引入change buffer, 对于insert/delete/update都有buffer
+	2. 两次写 double write
+		- 写过程中发生写断裂, 一个页16k只写了4k
+		- 重做日志是物理日志, 如果页不完整没有意义
+		- 先写内存double write buffer 再写磁盘共享表空间的double write
+	3. 自适应哈希 adaptive hash
+		- 为某些热点页建立哈希索引
+	4. 异步i/o Async i/o
+		- 为提高磁盘操作性能, 当前数据库都是用异步io
+		- 同步io发送请求, 等待相应
+		- 异步io可以连续发送,
+	5. 刷新邻接页
+
+binlog带来的问题
+	1. 异步写binlog会导致crash的时候部分binlog未写入
+	2. 同步写binlog也有问题, 在一个事务中, 还未提交, 先写binlog, 后crash, 重启后事务回滚, 但binlog存在
+
+redo log
+	1. 单独文件, 默认名字是ib_logfile0和ib_logfile1
+	2. 为了保持ACID中的D, flush_log_at_trx_commit必须设置为1
+	3. commit时候, 如果flush_log_at_trx_commit, 要将redo log写到磁盘才算提交
+
+undo log
+	1. 在共享表空间中
+	2. 提供mvcc功能
+
+视图
+	1. 视图是一个命名的虚拟表
+
+B+树
+	1. B+树并不能找到给定键值具体的行, 只能找到所在的页, 读入内存二分查找
+
+覆盖索引
+	1. 从二级索引中就可以查询到记录, 不需要查询主索引中的记录, 减少io
+
+锁
+	1. 锁的对象是事务, 用来锁定页/表/行, 一般仅在commit/rollback后释放
+	2. innodb实现2种标准行锁: 共享锁和排他锁
+	3. 不同粒度上锁, 意向锁
+	4. 如果对某页记录r上X锁, 那么需要对数据库A/表/页上意向锁IX, 最后对记录r上X锁. 如果过程中任何锁需要等待, 那么等待
+		- 如果在对记录r加X锁之前, 已经有事务对表加了S锁, 之后事务需要对表加IX锁, 由于不兼容, 所以后面的事务需要等待
+		- IX和IX, IS和IS两两之间都兼容, 意向表锁不会阻塞除全表扫描以外的其他行请求
+	5. MVCC, 如果另一个事务正在修改行数据, 当前事务不会等待锁释放, 而是直接读取快照
+		- 在RC和RR下采用mvcc, 但是读取的历史版本不同, RC读取最新快照, RR读取同一份快照
+
+	6. 一致性锁定读, SELECT显示加锁 S锁和X锁, for update/in share mode
+	7. 行锁3种算法: record/间隙锁(不包含本身)/next-key(包含本身)
+		- nextkey防止幻读
+		- 幻读是指同一个事务2次不同的查询, 第二次查询比第一次多了几行(由其他事务插入)
+		- 在RC下仅仅是record锁, 在RR下select for update才会加nextkey锁
+
+	8. 死锁, 超时回滚/死锁检测(有向图)
+
+恢复
+	1. innodb启动时不管是否正常关闭, 都会尝试恢复操作
+	2. checkpoint之前表示已经应用到数据页的LSN, 因此只做checkpoint之后的
+
+rollback 
+	1. 失败回滚的情况??? ///...
+	2. 开始一个事务, insert两次相同主键, 第二次失败了, 数据库报错, 但并不会自动回滚, 需要应用手动rollback
+
