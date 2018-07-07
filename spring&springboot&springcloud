@@ -53,3 +53,6 @@ Aop
 	3. spring支持2种aop, spring自己的aop和基于aspectJ的, 前者已经过时
 	4. aspectJ的实现?CGLib???
 
+Servlet
+	1. A servlet is simply a class which responds to a particular type of network request - most commonly an HTTP request.
+	2. servlet是处理网络请求的普通java类
